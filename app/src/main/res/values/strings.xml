@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hobbeast</string>
+    <string name="app_tagline">Fedezd fel a közösségedet</string>
+
+    <!-- Auth -->
+    <string name="login_title">Bejelentkezés</string>
+    <string name="register_title">Regisztráció</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Jelszó</string>
+    <string name="sign_in">Bejelentkezés</string>
+    <string name="sign_up">Regisztráció</string>
+    <string name="sign_out">Kijelentkezés</string>
+    <string name="no_account">Még nincs fiókod? Regisztrálj!</string>
+
+    <!-- Discovery -->
+    <string name="discovery_title">Hobbeast</string>
+    <string name="filter_all">Összes</string>
+    <string name="filter_for_me">Nekem</string>
+    <string name="filter_search">Keresés</string>
+    <string name="filter_categories">Kategóriák</string>
+    <string name="search_placeholder">Esemény keresése…</string>
+    <string name="trending_section">🔥 Trending</string>
+    <string name="featured_section">⭐ Kiemelt</string>
+    <string name="early_access_badge">Early Access</string>
+    <string name="free_entry">Ingyenes</string>
+    <string name="no_events">Nincs találat</string>
+
+    <!-- Event detail -->
+    <string name="rsvp_going">Megyek!</string>
+    <string name="rsvp_interested">Érdekel</string>
+    <string name="rsvp_cancel">Mégsem megyek</string>
+    <string name="rsvp_waitlist">Várólistára kerülök</string>
+    <string name="checkin_button">Check-in</string>
+
+    <!-- Create event -->
+    <string name="create_event_title">Új esemény</string>
+    <string name="edit_event_title">Esemény szerkesztése</string>
+    <string name="save">Mentés</string>
+    <string name="cancel">Mégse</string>
+    <string name="event_name_label">Esemény neve *</string>
+    <string name="description_label">Leírás</string>
+    <string name="category_label">Kategória *</string>
+    <string name="location_label">Helyszín *</string>
+    <string name="start_time_label">Kezdés *</string>
+    <string name="end_time_label">Befejezés (opcionális)</string>
+    <string name="capacity_label">Max. létszám (opcionális)</string>
+    <string name="free_event_label">Ingyenes esemény</string>
+    <string name="private_event_label">Privát esemény</string>
+    <string name="tags_label">Címkék (vesszővel elválasztva)</string>
+
+    <!-- Organizer -->
+    <string name="organizer_mode">Organizer mód</string>
+    <string name="my_events">Az eseményeim</string>
+    <string name="attendees">Résztvevők</string>
+    <string name="checkin">Check-in</string>
+    <string name="messaging">Üzenet</string>
+    <string name="analytics">Analitika</string>
+
+    <!-- Trip planning -->
+    <string name="trip_planning_title">Útvonaltervezés</string>
+    <string name="start_point">Indulási pont</string>
+    <string name="end_point">Érkezési pont</string>
+    <string name="add_waypoint">Közbülső pont hozzáadása</string>
+    <string name="plan_route">Útvonal tervezése</string>
+    <string name="calculating">Útvonal számítása…</string>
+    <string name="save_plan">Útvonal mentése</string>
+    <string name="plan_saved">Útvonal elmentve az eseményhez!</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profil</string>
+    <string name="display_name_label">Megjelenített név</string>
+    <string name="bio_label">Bemutatkozás</string>
+    <string name="location_privacy_title">Helyszín megosztása</string>
+    <string name="distance_filter">Eseménytávolság</string>
+    <string name="interests_title">Érdeklődési körök</string>
+    <string name="profile_saved">Profil elmentve!</string>
+
+    <!-- Errors -->
+    <string name="error_unknown">Ismeretlen hiba történt</string>
+    <string name="error_network">Hálózati hiba. Ellenőrizd az internetkapcsolatot.</string>
+    <string name="retry">Újra</string>
+    <string name="required_field">Ez a mező kötelező</string>
+</resources>

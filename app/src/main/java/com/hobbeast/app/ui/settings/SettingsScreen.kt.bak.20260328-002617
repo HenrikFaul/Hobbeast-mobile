@@ -1,0 +1,180 @@
+package com.hobbeast.app.ui.settings
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+
+private val REMINDER_OPTIONS = listOf(
+    1  to "1 órával előtte",
+    2  to "2 órával előtte",
+    6  to "6 órával előtte",
+    12 to "12 órával előtte",
+    24 to "1 nappal előtte",
+    48 to "2 nappal előtte",
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
+    val darkTheme          by viewModel.isDarkTheme.collectAsState()
+    val notifications      by viewModel.notificationsEnabled.collectAsState()
+    val reminderHours      by viewModel.reminderHours.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Beállítások", fontWeight = FontWeight.SemiBold) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+
+            // ─── Megjelenés ───────────────────────────────────────────────────
+            SettingsSection("Megjelenés") {
+                SettingsToggleRow(
+                    icon = Icons.Outlined.DarkMode,
+                    title = "Sötét mód",
+                    subtitle = "Sötét háttér és szövegszín",
+                    checked = darkTheme,
+                    onCheckedChange = viewModel::setDarkTheme,
+                )
+            }
+
+            // ─── Értesítések ──────────────────────────────────────────────────
+            SettingsSection("Értesítések") {
+                SettingsToggleRow(
+                    icon = Icons.Outlined.Notifications,
+                    title = "Esemény értesítések",
+                    subtitle = "Push értesítések bekapcsolt eseményekről",
+                    checked = notifications,
+                    onCheckedChange = viewModel::setNotifications,
+                )
+
+                AnimatedVisibility(notifications) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        HorizontalDivider(thickness = 0.5.dp)
+                        Text(
+                            "Emlékeztető időpontja",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                        REMINDER_OPTIONS.forEach { (hours, label) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                                RadioButton(
+                                    selected = reminderHours == hours,
+                                    onClick = { viewModel.setReminderHours(hours) },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ─── Az alkalmazásról ─────────────────────────────────────────────
+            SettingsSection("Az alkalmazásról") {
+                SettingsInfoRow(Icons.Outlined.Info,     "Verzió",         "1.0.0 (build 1)")
+                SettingsInfoRow(Icons.Outlined.Policy,   "Adatvédelem",    "Megnyitás")
+                SettingsInfoRow(Icons.Outlined.Article,  "Felhasználási feltételek", "Megnyitás")
+                SettingsInfoRow(Icons.Outlined.Email,    "Kapcsolat",      "hello@hobbeast.app")
+            }
+        }
+    }
+}
+
+// ─── Reusable setting row components ─────────────────────────────────────────
+
+@Composable
+fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        HorizontalDivider(thickness = 0.5.dp)
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsToggleRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+fun SettingsInfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    value: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        Text(title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}

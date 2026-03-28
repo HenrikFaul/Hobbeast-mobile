@@ -1,0 +1,13 @@
+The gradle-wrapper.jar is not included in this repository (binary file).
+To set it up, run ONE of these from the project root:
+
+Option A – Android Studio:
+  File > New > Import Project... 
+  Android Studio will automatically download the wrapper.
+
+Option B – Command line (requires Gradle installed):
+  gradle wrapper --gradle-version 8.7
+
+Option C – Download manually:
+  curl -L https://github.com/gradle/gradle/raw/v8.7.0/gradle/wrapper/gradle-wrapper.jar \
+       -o gradle/wrapper/gradle-wrapper.jar

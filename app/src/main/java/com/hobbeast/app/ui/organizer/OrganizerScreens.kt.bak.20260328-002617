@@ -1,0 +1,436 @@
+package com.hobbeast.app.ui.organizer
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.hobbeast.app.data.model.*
+import com.hobbeast.app.ui.theme.HobbeastColors
+
+// ─── Organizer Dashboard ──────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OrganizerDashboardScreen(
+    onBack: () -> Unit,
+    onEventClick: (String) -> Unit,
+    onAttendees: (String) -> Unit,
+    onCheckIn: (String) -> Unit,
+    onMessaging: (String) -> Unit,
+    onAnalytics: (String) -> Unit,
+    viewModel: OrganizerViewModel = hiltViewModel(),
+) {
+    val events by viewModel.myEvents.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Organizer mód", fontWeight = FontWeight.SemiBold) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = HobbeastColors.Coral500),
+            )
+        },
+    ) { padding ->
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(padding),
+        ) {
+            item {
+                Text("Az eseményeid", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+            if (events.isEmpty()) {
+                item {
+                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Text("Még nincs eseményed", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            items(events, key = { it.id }) { event ->
+                OrganizerEventCard(
+                    event = event,
+                    onEventClick = { onEventClick(event.id) },
+                    onAttendees = { onAttendees(event.id) },
+                    onCheckIn = { onCheckIn(event.id) },
+                    onMessaging = { onMessaging(event.id) },
+                    onAnalytics = { onAnalytics(event.id) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrganizerEventCard(
+    event: Event,
+    onEventClick: () -> Unit,
+    onAttendees: () -> Unit,
+    onCheckIn: () -> Unit,
+    onMessaging: () -> Unit,
+    onAnalytics: () -> Unit,
+) {
+    Card(
+        onClick = onEventClick,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(event.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                InfoChip(icon = Icons.Outlined.Group, label = "${event.attendeeCount} résztvevő")
+                InfoChip(icon = Icons.Outlined.Schedule, label = event.startTime.take(10))
+            }
+            HorizontalDivider(thickness = 0.5.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                OrganizerAction(Icons.Default.PeopleAlt, "Résztvevők", onAttendees)
+                OrganizerAction(Icons.Default.QrCodeScanner, "Check-in", onCheckIn)
+                OrganizerAction(Icons.Default.Message, "Üzenet", onMessaging)
+                OrganizerAction(Icons.Default.BarChart, "Analitika", onAnalytics)
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrganizerAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        IconButton(onClick = onClick) { Icon(icon, label, tint = MaterialTheme.colorScheme.primary) }
+        Text(label, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun InfoChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String) {
+    Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(20.dp)) {
+        Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+// ─── Attendee Management ──────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AttendeeManagementScreen(
+    eventId: String,
+    onBack: () -> Unit,
+    viewModel: AttendeeViewModel = hiltViewModel(),
+) {
+    val attendees by viewModel.attendees.collectAsState()
+    val filterState by viewModel.filterState.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filtered = attendees
+        .filter { filterState == null || it.state == filterState }
+        .filter { searchQuery.isBlank() || it.userName.contains(searchQuery, ignoreCase = true) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Résztvevők (${attendees.size})") },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+                actions = {
+                    IconButton(onClick = viewModel::exportAttendees) { Icon(Icons.Default.Download, "Exportálás") }
+                },
+            )
+        },
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
+            // Search
+            OutlinedTextField(
+                value = searchQuery, onValueChange = { searchQuery = it },
+                placeholder = { Text("Keresés...") },
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                singleLine = true, shape = RoundedCornerShape(12.dp),
+            )
+            // State filter chips
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    FilterChip(selected = filterState == null, onClick = { viewModel.setFilter(null) }, label = { Text("Mind") })
+                }
+                items(ParticipationState.values().filter { it != ParticipationState.NONE }) { state ->
+                    FilterChip(
+                        selected = filterState == state,
+                        onClick = { viewModel.setFilter(state) },
+                        label = { Text(state.label()) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(filtered, key = { it.id }) { attendee ->
+                    AttendeeRow(attendee = attendee, onRemove = { viewModel.removeAttendee(attendee.id) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttendeeRow(attendee: Attendee, onRemove: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(attendee.userName) },
+        supportingContent = { Text(attendee.state.label(), style = MaterialTheme.typography.labelSmall) },
+        trailingContent = {
+            IconButton(onClick = onRemove) { Icon(Icons.Default.RemoveCircleOutline, "Eltávolítás", tint = MaterialTheme.colorScheme.error) }
+        },
+    )
+    HorizontalDivider(thickness = 0.5.dp)
+}
+
+// ─── Check-In Screen ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CheckInScreen(
+    eventId: String,
+    onBack: () -> Unit,
+    viewModel: CheckInViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    var inviteCode by remember { mutableStateOf("") }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Check-in") },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            // Manual code entry
+            Text("Meghívókód beírása", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            OutlinedTextField(
+                value = inviteCode,
+                onValueChange = { inviteCode = it.uppercase() },
+                label = { Text("Meghívókód") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+            )
+            Button(
+                onClick = { viewModel.checkIn(inviteCode) },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                enabled = inviteCode.length >= 4 && uiState !is CheckInUiState.Loading,
+                shape = RoundedCornerShape(12.dp),
+            ) { Text("Check-in manuálisan") }
+
+            HorizontalDivider()
+
+            // QR scan placeholder
+            Card(
+                modifier = Modifier.fillMaxWidth().height(200.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(8.dp))
+                        Text("QR kód szkenner", style = MaterialTheme.typography.bodyMedium)
+                        Button(onClick = viewModel::startQrScan, modifier = Modifier.padding(top = 8.dp)) { Text("Kamera indítása") }
+                    }
+                }
+            }
+
+            // Result
+            when (val s = uiState) {
+                is CheckInUiState.Success -> Card(
+                    colors = CardDefaults.cardColors(containerColor = HobbeastColors.Success.copy(alpha = 0.12f)),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CheckCircle, null, tint = HobbeastColors.Success)
+                        Spacer(Modifier.width(8.dp))
+                        Text("${s.attendeeName} – Bejelentkezve!", color = HobbeastColors.Success)
+                    }
+                }
+                is CheckInUiState.Error -> Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(s.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
+                }
+                else -> {}
+            }
+        }
+    }
+}
+
+// ─── Messaging Screen ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MessagingScreen(
+    eventId: String,
+    onBack: () -> Unit,
+    viewModel: MessagingViewModel = hiltViewModel(),
+) {
+    val messages by viewModel.messages.collectAsState()
+    var subject by remember { mutableStateOf("") }
+    var body by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf(MessageType.REMINDER) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Üzenetek") },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+            )
+        },
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Új üzenet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+
+            // Message type
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(MessageType.values()) { type ->
+                    FilterChip(selected = selectedType == type, onClick = { selectedType = type }, label = { Text(type.label()) })
+                }
+            }
+
+            OutlinedTextField(value = subject, onValueChange = { subject = it },
+                label = { Text("Tárgy") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(value = body, onValueChange = { body = it },
+                label = { Text("Üzenet szövege") }, modifier = Modifier.fillMaxWidth(),
+                minLines = 4, maxLines = 8, shape = RoundedCornerShape(12.dp))
+
+            Button(onClick = { viewModel.sendMessage(subject, body, selectedType) },
+                modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(12.dp)) {
+                Icon(Icons.Default.Send, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Küldés")
+            }
+
+            if (messages.isNotEmpty()) {
+                Text("Előzmények", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
+                    items(messages, key = { it.id }) { msg ->
+                        Card(shape = RoundedCornerShape(12.dp)) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text(msg.subject, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                    Text(msg.type.label(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                }
+                                Text(msg.status.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── Analytics Screen ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AnalyticsScreen(
+    eventId: String,
+    onBack: () -> Unit,
+    viewModel: AnalyticsViewModel = hiltViewModel(),
+) {
+    val analytics by viewModel.analytics.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Analitika") },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+            )
+        },
+    ) { padding ->
+        if (analytics == null) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        } else {
+            val a = analytics!!
+            LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(padding)) {
+                item {
+                    Text("Összefoglaló", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        KpiCard("Megtekintés", a.totalViews.toString(), Icons.Outlined.Visibility, modifier = Modifier.weight(1f))
+                        KpiCard("Résztvevő", a.goingCount.toString(), Icons.Outlined.Group, modifier = Modifier.weight(1f))
+                    }
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        KpiCard("Check-in", a.checkedInCount.toString(), Icons.Outlined.CheckCircle, modifier = Modifier.weight(1f))
+                        KpiCard("Konverzió", "%.0f%%".format(a.conversionRate * 100), Icons.Outlined.TrendingUp, modifier = Modifier.weight(1f))
+                    }
+                }
+                if (a.sources.isNotEmpty()) {
+                    item {
+                        Text("Forrásattribúció", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    }
+                    items(a.sources) { source ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Text(source.source, style = MaterialTheme.typography.bodyMedium)
+                            Text("${source.count} (%.0f%%)".format(source.percentage * 100),
+                                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        }
+                        LinearProgressIndicator(progress = { source.percentage.toFloat() },
+                            modifier = Modifier.fillMaxWidth().height(4.dp).padding(vertical = 2.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun KpiCard(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier) {
+    Card(modifier = modifier, shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+// ─── Helper extensions ────────────────────────────────────────────────────────
+
+fun ParticipationState.label() = when (this) {
+    ParticipationState.GOING       -> "Megyek"
+    ParticipationState.INTERESTED  -> "Érdekel"
+    ParticipationState.WAITLISTED  -> "Várólistán"
+    ParticipationState.CHECKED_IN  -> "Check-in"
+    ParticipationState.DECLINED    -> "Nem megy"
+    ParticipationState.NONE        -> "Nincs"
+}
+
+fun MessageType.label() = when (this) {
+    MessageType.REMINDER         -> "Emlékeztető"
+    MessageType.LOGISTICS_UPDATE -> "Logisztika"
+    MessageType.EVENT_UPDATE     -> "Frissítés"
+    MessageType.CANCELLATION     -> "Lemondás"
+    MessageType.GENERAL          -> "Általános"
+}
